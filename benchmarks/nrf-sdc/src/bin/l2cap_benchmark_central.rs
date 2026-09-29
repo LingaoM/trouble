@@ -94,6 +94,7 @@ async fn main(spawner: Spawner) {
     };
 
     let _ = join(runner.run(), async {
+        stack.wait_initialized().await;
         loop {
             let conn = unwrap!(central.connect(&config).await);
             const PAYLOAD_LEN: usize = L2CAP_MTU - 6;

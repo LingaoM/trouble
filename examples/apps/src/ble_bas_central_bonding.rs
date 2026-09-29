@@ -62,6 +62,7 @@ where
 
     info!("Scanning for peripheral...");
     let _ = join(runner.run(), async {
+        stack.wait_initialized().await;
         info!("Connecting");
 
         let conn = central.connect(&config).await.unwrap();

@@ -52,6 +52,7 @@ async fn run_bas_peripheral_test(labels: &[(&str, &str)], firmware: &str) {
                 r
             }
             r = async {
+                stack.wait_initialized().await;
                 let config = ConnectConfig {
                     connect_params: Default::default(),
                     scan_config: ScanConfig {

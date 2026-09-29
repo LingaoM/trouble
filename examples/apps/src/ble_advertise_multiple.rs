@@ -66,6 +66,7 @@ where
 
     info!("Starting advertising");
     let _ = join(runner.run(), async {
+        stack.wait_initialized().await;
         loop {
             let _advertiser = peripheral.advertise_ext(&sets, &mut handles).await.unwrap();
             loop {

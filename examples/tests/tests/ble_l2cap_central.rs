@@ -59,6 +59,7 @@ async fn run_l2cap_central_test(labels: &[(&str, &str)], firmware: &str) {
                 r
             }
             r = async {
+                stack.wait_initialized().await;
                 let mut adv_data = [0; 31];
                 let adv_data_len = AdStructure::encode_slice(
                     &[AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED)],

@@ -1,4 +1,4 @@
-use embassy_futures::join::{join, join3};
+use embassy_futures::join::join;
 use embassy_time::{Duration, Timer};
 use trouble_host::prelude::*;
 
@@ -25,9 +25,15 @@ where
 
     info!("Scanning for peripheral...");
     // NOTE: Modify this to match the address of the peripheral you want to connect to.
-    let fut1 = scan(&stack, [0xff, 0x8f, 0x1a, 0x05, 0xe4, 0xff]);
-    let fut2 = scan(&stack, [0xff, 0x8f, 0x1a, 0x05, 0xe5, 0xff]);
-    let _ = join3(runner.run(), fut1, fut2).await;
+    let _ = join(runner.run(), async {
+        stack.wait_initialized().await;
+        join(
+            scan(&stack, [0xff, 0x8f, 0x1a, 0x05, 0xe4, 0xff]),
+            scan(&stack, [0xff, 0x8f, 0x1a, 0x05, 0xe5, 0xff]),
+        )
+        .await;
+    })
+    .await;
 }
 
 async fn scan<'a, C: Controller, P: PacketPool>(stack: &'a Stack<'_, C, P>, addr: [u8; 6]) {

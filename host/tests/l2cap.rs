@@ -39,6 +39,7 @@ async fn l2cap_connection_oriented_channels() {
                 r
             }
             r = async {
+                stack.wait_initialized().await;
                 let mut adv_data = [0; 31];
                 let adv_data_len = AdStructure::encode_slice(
                     &[AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED)],
@@ -101,6 +102,7 @@ async fn l2cap_connection_oriented_channels() {
                 r
             }
             r = async {
+                stack.wait_initialized().await;
                 let config = ConnectConfig {
                     connect_params: Default::default(),
                     scan_config: ScanConfig {

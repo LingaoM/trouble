@@ -41,6 +41,7 @@ where
         AdStructure::encode_slice(&[AdStructure::CompleteLocalName(b"TroubleHT")], &mut scan_data[..]).unwrap();
 
     let _ = join(runner.run(), async {
+        stack.wait_initialized().await;
         loop {
             // Check that the controller used supports the necessary features for high throughput.
             let res = stack

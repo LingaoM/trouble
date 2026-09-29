@@ -54,6 +54,7 @@ where
     .unwrap();
 
     let _ = join(ble_task(runner), async {
+        stack.wait_initialized().await;
         loop {
             match advertise("Trouble Example", &mut peripheral, &server).await {
                 Ok(conn) => {

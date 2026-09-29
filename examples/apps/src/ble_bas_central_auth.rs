@@ -43,6 +43,7 @@ where
     };
 
     let _ = join(runner.run(), async {
+        stack.wait_initialized().await;
         'connect: loop {
             info!("Connecting");
             let conn = central.connect(&config).await.unwrap();

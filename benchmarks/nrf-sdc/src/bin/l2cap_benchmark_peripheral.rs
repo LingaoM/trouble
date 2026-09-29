@@ -95,6 +95,7 @@ async fn main(spawner: Spawner) {
     ));
 
     let _ = join(runner.run(), async {
+        stack.wait_initialized().await;
         loop {
             let advertiser = unwrap!(
                 peripheral

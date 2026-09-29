@@ -56,12 +56,10 @@ use bt_hci::param::{
 };
 use bt_hci::{ControllerToHostPacket, FromHciBytes, WriteHci};
 use embassy_futures::select::{select3, select5, Either3, Either5};
-#[cfg(any(feature = "scan", feature = "security"))]
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 #[cfg(feature = "security")]
 use embassy_sync::mutex::Mutex;
 use embassy_sync::once_lock::OnceLock;
-#[cfg(feature = "scan")]
 use embassy_sync::signal::Signal;
 use embassy_sync::waitqueue::WakerRegistration;
 use embassy_time::Duration;
@@ -136,6 +134,7 @@ impl ResolvingListSignal {
 
 pub(crate) struct HostState<'d, P: PacketPool> {
     initialized: OnceLock<InitialState>,
+    pub(crate) initialization_complete: Signal<NoopRawMutex, ()>,
     metrics: RefCell<HostMetrics>,
     pub(crate) address: Option<Address>,
     pub(crate) connections: ConnectionManager<'d, P>,
@@ -166,6 +165,7 @@ impl<'d, P: PacketPool> HostState<'d, P> {
         Self {
             address: None,
             initialized: OnceLock::new(),
+            initialization_complete: Signal::new(),
             metrics: RefCell::new(HostMetrics::default()),
             connections: ConnectionManager::new(
                 connections,
@@ -632,13 +632,17 @@ where
         self.state.initialized.try_get().is_some()
     }
 
+    fn initial_state(&self) -> Result<&InitialState, Error> {
+        self.state.initialized.try_get().ok_or(Error::InvalidState)
+    }
+
     /// Run a HCI command and return the response.
     pub(crate) async fn command<C>(&self, cmd: C) -> Result<C::Return, BleHostError<T::Error>>
     where
         C: SyncCmd,
         T: ControllerCmdSync<C>,
     {
-        let _ = self.state.initialized.get().await;
+        self.initial_state()?;
         let ret = cmd.exec(self.controller).await?;
         Ok(ret)
     }
@@ -649,7 +653,7 @@ where
         C: AsyncCmd,
         T: ControllerCmdAsync<C>,
     {
-        let _ = self.state.initialized.get().await;
+        self.initial_state()?;
         cmd.exec(self.controller).await?;
         Ok(())
     }
@@ -1084,7 +1088,7 @@ where
     // This function cannot be used to send an SDU split among multiple k-frames.
     pub(crate) async fn l2cap_pdu(&self, handle: ConnHandle) -> Result<L2capSender<'_, T, P>, BleHostError<T::Error>> {
         // Take into account l2cap header.
-        let initial_state = self.state.initialized.get().await;
+        let initial_state = self.initial_state()?;
         let acl_max = initial_state.acl_max as u16;
         if acl_max == 0 {
             return Err(Error::NoPermits.into());
@@ -1926,6 +1930,8 @@ impl<'d, C: Controller, P: PacketPool> ControlRunner<'d, C, P> {
             info!("[host] privacy initialized");
         }
 
+        host.state.initialization_complete.signal(());
+
         loop {
             match select5(
                 poll_fn(|cx| host.state.connections.poll_disconnecting(Some(cx))),
@@ -2062,7 +2068,6 @@ impl<'d, C: Controller, P: PacketPool> TxRunner<'d, C, P> {
     /// Run the transmit loop for the host.
     pub async fn run(&mut self) -> Result<(), BleHostError<C::Error>> {
         let host = &self.host;
-        let params = host.state.initialized.get().await;
         loop {
             let (conn, pdu) = host.state.connections.outbound().await;
             match host.l2cap_pdu(conn).await {

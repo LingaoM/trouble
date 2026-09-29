@@ -58,7 +58,7 @@ use bt_hci::cmd::le::{
 };
 use bt_hci::controller::{ControllerCmdAsync, ControllerCmdSync};
 use bt_hci::param::LeAdvEventKind;
-use embassy_futures::select::{Either, Either5, select, select5};
+use embassy_futures::select::{Either, Either4, select, select4};
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::channel::{Channel, DynamicSender};
 use embassy_sync::watch::Watch;
@@ -374,60 +374,63 @@ where
         response: response.receiver(),
     };
 
-    match select(
-        l2cap::run(
-            &stack,
-            CommandReceiver::new(l2cap_command.receiver(), response.sender()),
-            events.dyn_sender(),
-            &mut l2cap_rx,
-            pre.l2cap_listener,
-        ),
-        select5(
-            ble_task(runner, events.dyn_sender(), &scan_mode),
-            peripheral::run(
+    let application = async {
+        stack.wait_initialized().await;
+        select(
+            l2cap::run(
                 &stack,
-                peripheral,
-                CommandReceiver::new(peripheral_command.receiver(), response.sender()),
-                &server,
+                CommandReceiver::new(l2cap_command.receiver(), response.sender()),
                 events.dyn_sender(),
-                &conn_sender,
-                &oob,
+                &mut l2cap_rx,
+                pre.l2cap_listener,
             ),
-            central::run(
-                &stack,
-                central,
-                CommandReceiver::new(central_command.receiver(), response.sender()),
-                &server,
-                events.dyn_sender(),
-                &conn_sender,
-                &oob,
+            select4(
+                peripheral::run(
+                    &stack,
+                    peripheral,
+                    CommandReceiver::new(peripheral_command.receiver(), response.sender()),
+                    &server,
+                    events.dyn_sender(),
+                    &conn_sender,
+                    &oob,
+                ),
+                central::run(
+                    &stack,
+                    central,
+                    CommandReceiver::new(central_command.receiver(), response.sender()),
+                    &server,
+                    events.dyn_sender(),
+                    &conn_sender,
+                    &oob,
+                ),
+                gatt_client::run(
+                    &stack,
+                    CommandReceiver::new(gatt_client_command.receiver(), response.sender()),
+                    events.dyn_sender(),
+                    &mut gatt_client_rx,
+                ),
+                btp::run(
+                    pre.transport,
+                    gap,
+                    &config,
+                    &server,
+                    &stack,
+                    events.dyn_receiver(),
+                    &channels,
+                    &mut packet,
+                ),
             ),
-            gatt_client::run(
-                &stack,
-                CommandReceiver::new(gatt_client_command.receiver(), response.sender()),
-                events.dyn_sender(),
-                &mut gatt_client_rx,
-            ),
-            btp::run(
-                pre.transport,
-                gap,
-                &config,
-                &server,
-                &stack,
-                events.dyn_receiver(),
-                &channels,
-                &mut packet,
-            ),
-        ),
-    )
-    .await
-    {
-        Either::First(never) => match never {},
-        Either::Second(Either5::First(result)) => result?,
-        Either::Second(Either5::Second(never)) => match never {},
-        Either::Second(Either5::Third(never)) => match never {},
-        Either::Second(Either5::Fourth(never)) => match never {},
-        Either::Second(Either5::Fifth(result)) => result?,
+        )
+        .await
+    };
+
+    match select(ble_task(runner, events.dyn_sender(), &scan_mode), application).await {
+        Either::First(result) => result?,
+        Either::Second(Either::First(never)) => match never {},
+        Either::Second(Either::Second(Either4::First(never))) => match never {},
+        Either::Second(Either::Second(Either4::Second(never))) => match never {},
+        Either::Second(Either::Second(Either4::Third(never))) => match never {},
+        Either::Second(Either::Second(Either4::Fourth(result))) => result?,
     }
 
     Ok(())

@@ -32,6 +32,7 @@ where
     };
     let mut scanner = Scanner::new(&mut central);
     let _ = join(runner.run_with_handler(&printer), async {
+        stack.wait_initialized().await;
         let mut config = ScanConfig::default();
         config.active = true;
         config.phys = PhySet::M1;

@@ -916,6 +916,16 @@ impl<'stack, C: Controller, P: PacketPool> Stack<'stack, C, P> {
         Runner::new(self.host())
     }
 
+    /// Wait until the runner has completed controller and host initialization.
+    ///
+    /// The runner must be polled concurrently. During initialization, only one
+    /// task may wait on this method.
+    pub async fn wait_initialized(&self) {
+        if !self.host().is_initialized() {
+            self.host_state.initialization_complete.wait().await;
+        }
+    }
+
     /// Obtain a [`Central`](central::Central) handle for the central BLE role.
     ///
     /// This is a lightweight handle that can be created multiple times.

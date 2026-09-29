@@ -65,6 +65,7 @@ async fn run_l2cap_peripheral_test(labels: &[(&str, &str)], firmware: &str) {
                 r
             }
             r = async {
+                stack.wait_initialized().await;
                 let config = ConnectConfig {
                     connect_params: Default::default(),
                     scan_config: ScanConfig {
