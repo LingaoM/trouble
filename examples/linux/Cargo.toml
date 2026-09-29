@@ -9,11 +9,14 @@ tokio = { version = "1", features = ["io-util", "net", "rt", "sync"] }
 embedded-io = { version = "0.7", features = ["std"] }
 embedded-io-adapters = { version = "0.7", features = ["tokio-1"] }
 embedded-io-async = "0.7"
+libc = { version = "0.2", optional = true }
 bt-hci = "0.10"
 bt-hci-linux = "0.2"
 bt-hci-transport = "0.1"
 trouble-example-apps = { version = "0.1.0", path = "../apps", features = ["log", "std"] }
-embassy-time = { version = "0.5", features = ["std", "generic-queue-8"] }
+embassy-time = { version = "0.5", default-features = false }
+embassy-time-driver = { version = "0.2", optional = true }
+embassy-time-queue-utils = { version = "0.3", features = ["generic-queue-8"], optional = true }
 embassy-crypto-rand = { git = "https://github.com/embassy-rs/embassy.git", rev = "bd35bd7a7d19147c8bcae9c2eda99b25e597294c", optional = true }
 embassy-crypto-rustcrypto = { git = "https://github.com/embassy-rs/embassy.git", rev = "bd35bd7a7d19147c8bcae9c2eda99b25e597294c", optional = true, features = [
     "embassy-crypto-aes128-ecb",
@@ -23,7 +26,22 @@ embassy-crypto-rustcrypto = { git = "https://github.com/embassy-rs/embassy.git",
 env_logger = "0.11"
 critical-section = { version = "1", features = ["std"] }
 
+[build-dependencies]
+cc = { version = "1", optional = true }
+
 [features]
+default = ["wall-clock"]
+wall-clock = [
+    "embassy-time/std",
+    "embassy-time/generic-queue-8",
+]
+discrete-time = [
+    "dep:cc",
+    "dep:embassy-time-driver",
+    "dep:embassy-time-queue-utils",
+    "dep:libc",
+    "embassy-time/tick-hz-1_000_000",
+]
 security = [
     "trouble-example-apps/security",
     "dep:embassy-crypto-rand",
