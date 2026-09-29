@@ -1,4 +1,19 @@
-# Linux HCI socket example
+# Linux examples
+
+The Linux examples can communicate with either a BlueZ HCI device or a Unix
+socket. The first positional argument selects the transport:
+
+- No argument or a decimal number selects a BlueZ HCI device. The default is
+  device `0` (`hci0`).
+- Any other value is used as a Unix socket path.
+
+```sh
+cargo run --bin ble_scanner             # BlueZ hci0
+cargo run --bin ble_scanner -- 1        # BlueZ hci1
+cargo run --bin ble_scanner -- /tmp/hci.sock
+```
+
+## BlueZ HCI user channel
 
 This example opens a "user channel" with the [Linux HCI socket interface](https://github.com/bluez/bluez/wiki/HCI), which assumes full control of the device.
 
@@ -16,5 +31,3 @@ systemd-run \
   --property "AmbientCapabilities=CAP_NET_ADMIN" \
   cargo run --bin ble_scanner
 ```
-
-To bind a different HCI device (e.g. `hci1`), pass a the device number as a single parameter (e.g. `cargo run --bin ble_scanner -- 1`)

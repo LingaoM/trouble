@@ -577,6 +577,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9eb1aa714776b75c7e67e1da744b81a129b3ff919c8712b5e1b32252c1f07cc7"
 
 [[package]]
+name = "embedded-io-adapters"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c900a1c087f1f7d17cdc84a1290df91521cd90933efa76d68e568385d889f2f4"
+dependencies = [
+ "embedded-io",
+ "embedded-io-async",
+ "tokio",
+]
+
+[[package]]
 name = "embedded-io-async"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1413,17 +1424,17 @@ version = "0.1.0"
 dependencies = [
  "bt-hci",
  "bt-hci-linux",
+ "bt-hci-transport",
  "critical-section",
  "embassy-crypto-rand",
  "embassy-crypto-rustcrypto",
  "embassy-time",
  "embedded-io",
+ "embedded-io-adapters",
+ "embedded-io-async",
  "env_logger",
- "libc",
- "log",
  "tokio",
  "trouble-example-apps",
- "trouble-host",
 ]
 
 [[package]]
